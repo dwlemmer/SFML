@@ -463,6 +463,21 @@ Font& Font::operator =(const Font& right)
     return *this;
 }
 
+FloatRect Font::getTextSize( const String& text, unsigned int characterSize, bool bold, float outlineThickness )
+{
+	FloatRect rect;
+
+	for (std::size_t i = 0; i < text.getSize(); ++i)
+	{
+		Uint32 curChar = text[i];
+		const Glyph& glyph = getGlyph(curChar, characterSize, bold, outlineThickness);
+
+		if ( rect.height < glyph.bounds.height ) { rect.height = glyph.bounds.height; }
+		rect.width += glyph.advance;
+	}
+
+	return rect;
+}
 
 ////////////////////////////////////////////////////////////
 void Font::cleanup()

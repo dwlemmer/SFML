@@ -263,6 +263,8 @@ public:
     ////////////////////////////////////////////////////////////
     Font& operator =(const Font& right);
 
+	FloatRect getTextSize( const String& text, unsigned int characterSize, bool bold = false, float outlineThickness = 0.0f );
+
 //private:
 
     ////////////////////////////////////////////////////////////
