@@ -158,7 +158,6 @@ void WindowImpl::pushEvent(const Event& event)
 ////////////////////////////////////////////////////////////
 void WindowImpl::processJoystickEvents()
 {
-	#if 0
     // First update the global joystick states
     JoystickManager::getInstance().update();
 
@@ -218,7 +217,6 @@ void WindowImpl::processJoystickEvents()
             }
         }
     }
-	#endif
 }
 
 
