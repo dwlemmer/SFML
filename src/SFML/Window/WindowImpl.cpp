@@ -158,6 +158,8 @@ void WindowImpl::pushEvent(const Event& event)
 ////////////////////////////////////////////////////////////
 void WindowImpl::processJoystickEvents()
 {
+    if ( !stupid_joystick_shit_enabled ) { return; }
+
     // First update the global joystick states
     JoystickManager::getInstance().update();
 

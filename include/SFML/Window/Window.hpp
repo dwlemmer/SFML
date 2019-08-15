@@ -58,6 +58,8 @@ class SFML_WINDOW_API Window : GlResource, NonCopyable
 {
 public:
 
+    void enable_stupid_joystick_shit( bool enabled );
+
     ////////////////////////////////////////////////////////////
     /// \brief Default constructor
     ///

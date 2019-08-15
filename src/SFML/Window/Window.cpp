@@ -40,7 +40,13 @@ namespace
 
 namespace sf
 {
-////////////////////////////////////////////////////////////
+	void Window::enable_stupid_joystick_shit(bool enabled)
+	{
+        m_impl->stupid_joystick_shit_enabled = enabled;
+	}
+
+
+	////////////////////////////////////////////////////////////
 Window::Window() :
 m_impl          (NULL),
 m_context       (NULL),

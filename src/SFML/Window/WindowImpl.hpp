@@ -55,6 +55,7 @@ namespace priv
 class WindowImpl : NonCopyable
 {
 public:
+    bool stupid_joystick_shit_enabled = false;
 
     ////////////////////////////////////////////////////////////
     /// \brief Create a new window depending on the current OS
