@@ -936,6 +936,33 @@ void WindowImplWin32::processEvent(UINT message, WPARAM wParam, LPARAM lParam)
             pushEvent(event);
             break;
         }
+
+
+        case WM_INPUT: 
+        {
+            UINT dwSize = sizeof(RAWINPUT);
+            static BYTE lpb[sizeof(RAWINPUT)];
+
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, 
+                lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+            RAWINPUT* raw = (RAWINPUT*)lpb;
+
+            if (raw->header.dwType == RIM_TYPEMOUSE) 
+            {
+                int xPosRelative = raw->data.mouse.lLastX;
+                int yPosRelative = raw->data.mouse.lLastY;
+
+                // Generate a MouseMove event
+                Event event;
+                event.type        = Event::RawMouseMoved;
+                event.mouseMove.x = xPosRelative;
+                event.mouseMove.y = yPosRelative;
+                pushEvent(event);
+
+            } 
+            break;
+        }
     }
 }
 
