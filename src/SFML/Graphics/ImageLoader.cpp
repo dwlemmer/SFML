@@ -129,7 +129,7 @@ bool ImageLoader::loadImageFromFile(const std::string& filename, std::vector<Uin
     else
     {
         // Error, failed to load the image
-        err() << "Failed to load image \"" << filename << "\". Reason: " << stbi_failure_reason() << std::endl;
+        //err() << "Failed to load image \"" << filename << "\". Reason: " << stbi_failure_reason() << std::endl;
 
         return false;
     }

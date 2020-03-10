@@ -59,21 +59,48 @@ private:
 
     virtual int overflow(int character)
     {
+        #ifdef _DEBUG
+        static int depth = 0;
+        ++depth;
+        if ( depth > 50 )
+        {
+            *((unsigned int*)0) = 0xDEAD;
+        }
+        #endif
+
         if ((character != EOF) && (pptr() != epptr()))
         {
             // Valid character
-            return sputc(static_cast<char>(character));
+            auto ret = sputc(static_cast<char>(character));
+
+            #ifdef _DEBUG
+            --depth;
+            #endif
+
+            return ret;
         }
         else if (character != EOF)
         {
             // Not enough space in the buffer: synchronize output and try again
             sync();
-            return overflow(character);
+            auto ret = overflow(character);
+
+            #ifdef _DEBUG
+            --depth;
+            #endif
+
+            return ret;
         }
         else
         {
             // Invalid character: synchronize output
-            return sync();
+            auto ret = sync();
+
+            #ifdef _DEBUG
+            --depth;
+            #endif
+
+            return ret;
         }
     }
 
