@@ -33,6 +33,9 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+// Modern glx.h includes glxext.h under a different guard than __glxext_h_.
+// Skip that header so the typedefs and function-pointer macros below stay the only ones.
+#define GLX_GLXEXT_LEGACY
 #include <GL/glx.h>
 #ifdef CODEGEN_FUNCPTR
 #undef CODEGEN_FUNCPTR
