@@ -72,6 +72,35 @@ namespace
         ::Display* m_display;
         int      (*m_previousHandler)(::Display*, XErrorEvent*);
     };
+
+    // Held across a whole GLX request so another thread's Xlib call cannot
+    // insert protocol into the middle of it. XLockDisplay is recursive, so the
+    // driver's own lock inside glXSwapBuffers / glXMakeCurrent does not deadlock.
+    // XInitThreads() must already have been called.
+    class ScopedXDisplayLock
+    {
+    public:
+
+        explicit ScopedXDisplayLock(::Display* display) :
+        m_display(display)
+        {
+            if (m_display)
+                XLockDisplay(m_display);
+        }
+
+        ~ScopedXDisplayLock()
+        {
+            if (m_display)
+                XUnlockDisplay(m_display);
+        }
+
+    private:
+
+        ScopedXDisplayLock(const ScopedXDisplayLock&);
+        ScopedXDisplayLock& operator=(const ScopedXDisplayLock&);
+
+        ::Display* m_display;
+    };
 }
 
 
@@ -223,6 +252,8 @@ bool GlxContext::makeCurrent(bool current)
     GlxErrorHandler handler(m_display);
 #endif
 
+    ScopedXDisplayLock displayLock(m_display);
+
     bool result = false;
 
     if (current)
@@ -256,6 +287,8 @@ void GlxContext::display()
 #if defined(GLX_DEBUGGING)
     GlxErrorHandler handler(m_display);
 #endif
+
+    ScopedXDisplayLock displayLock(m_display);
 
     if (m_pbuffer)
         glXSwapBuffers(m_display, m_pbuffer);
