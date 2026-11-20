@@ -26,6 +26,7 @@
 // Headers
 ////////////////////////////////////////////////////////////
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Window/Window.hpp>
 #include <SFML/Graphics/Drawable.hpp>
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -413,9 +414,23 @@ void RenderTarget::initialize()
 ////////////////////////////////////////////////////////////
 void RenderTarget::applyCurrentView()
 {
-    // Set the viewport
+    // Set the viewport. GL's origin is the bottom of the drawable. On GLX the
+    // drawable is a screen-sized child and the window shows its top-left, so
+    // a draw to the default framebuffer has to sit at the top of that child.
     IntRect viewport = getViewport(m_view);
-    int top = getSize().y - (viewport.top + viewport.height);
+    int targetHeight = static_cast<int>(getSize().y);
+    GLint boundFramebuffer = 0;
+    glGetIntegerv(GLEXT_GL_FRAMEBUFFER_BINDING, &boundFramebuffer);
+    if (boundFramebuffer == 0)
+    {
+        if (Window* window = dynamic_cast<Window*>(this))
+        {
+            unsigned int drawableHeight = window->getDrawableSize().y;
+            if (drawableHeight != 0)
+                targetHeight = static_cast<int>(drawableHeight);
+        }
+    }
+    int top = targetHeight - (viewport.top + viewport.height);
     glCheck(glViewport(viewport.left, top, viewport.width, viewport.height));
 
     // Set the projection matrix

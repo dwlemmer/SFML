@@ -176,13 +176,28 @@ private:
     void createContext(GlxContext* shared);
 
     ////////////////////////////////////////////////////////////
+    /// \brief Screen size of the child. syncDrawableSize does not change it.
+    ///
+    ////////////////////////////////////////////////////////////
+    virtual void getDrawableSize(unsigned int& width, unsigned int& height) const;
+
+    ////////////////////////////////////////////////////////////
+    /// \brief No-op. Resizing this drawable makes glXSwapBuffers abort().
+    ///
+    ////////////////////////////////////////////////////////////
+    virtual void syncDrawableSize(unsigned int width, unsigned int height);
+
+    ////////////////////////////////////////////////////////////
     // Member data
     ////////////////////////////////////////////////////////////
-    ::Display*        m_display;    ///< Connection to the X server
-    ::Window          m_window;     ///< Window to which the context is attached
-    GLXContext        m_context;    ///< OpenGL context
-    GLXPbuffer        m_pbuffer;    ///< GLX pbuffer ID if one was created
-    bool              m_ownsWindow; ///< Do we own the window associated to the context?
+    ::Display*        m_display;      ///< Connection to the X server
+    ::Window          m_window;       ///< GLX drawable. A child of m_hostWindow when one exists
+    ::Window          m_hostWindow;   ///< Top-level window the WM resizes. 0 if m_window is the drawable
+    GLXContext        m_context;      ///< OpenGL context
+    GLXPbuffer        m_pbuffer;      ///< GLX pbuffer ID if one was created
+    bool              m_ownsWindow;   ///< Do we own the window associated to the context?
+    unsigned int      m_syncedWidth;  ///< Last drawable size applied from the GL thread
+    unsigned int      m_syncedHeight; ///< Last drawable size applied from the GL thread
 };
 
 } // namespace priv

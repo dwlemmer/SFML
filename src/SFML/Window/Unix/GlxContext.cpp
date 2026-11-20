@@ -125,11 +125,14 @@ void ensureExtensionsInit(::Display* display, int screen)
 
 ////////////////////////////////////////////////////////////
 GlxContext::GlxContext(GlxContext* shared) :
-m_display   (NULL),
-m_window    (0),
-m_context   (NULL),
-m_pbuffer   (0),
-m_ownsWindow(false)
+m_display     (NULL),
+m_window      (0),
+m_hostWindow  (0),
+m_context     (NULL),
+m_pbuffer     (0),
+m_ownsWindow  (false),
+m_syncedWidth (0),
+m_syncedHeight(0)
 {
     // Save the creation settings
     m_settings = ContextSettings();
@@ -150,11 +153,14 @@ m_ownsWindow(false)
 
 ////////////////////////////////////////////////////////////
 GlxContext::GlxContext(GlxContext* shared, const ContextSettings& settings, const WindowImpl* owner, unsigned int bitsPerPixel) :
-m_display   (NULL),
-m_window    (0),
-m_context   (NULL),
-m_pbuffer   (0),
-m_ownsWindow(false)
+m_display     (NULL),
+m_window      (0),
+m_hostWindow  (0),
+m_context     (NULL),
+m_pbuffer     (0),
+m_ownsWindow  (false),
+m_syncedWidth (0),
+m_syncedHeight(0)
 {
     // Save the creation settings
     m_settings = settings;
@@ -175,11 +181,14 @@ m_ownsWindow(false)
 
 ////////////////////////////////////////////////////////////
 GlxContext::GlxContext(GlxContext* shared, const ContextSettings& settings, unsigned int width, unsigned int height) :
-m_display   (NULL),
-m_window    (0),
-m_context   (NULL),
-m_pbuffer   (0),
-m_ownsWindow(false)
+m_display     (NULL),
+m_window      (0),
+m_hostWindow  (0),
+m_context     (NULL),
+m_pbuffer     (0),
+m_ownsWindow  (false),
+m_syncedWidth (0),
+m_syncedHeight(0)
 {
     // Save the creation settings
     m_settings = settings;
@@ -248,11 +257,10 @@ bool GlxContext::makeCurrent(bool current)
     if (!m_context)
         return false;
 
+    ScopedXDisplayLock displayLock(m_display);
 #if defined(GLX_DEBUGGING)
     GlxErrorHandler handler(m_display);
 #endif
-
-    ScopedXDisplayLock displayLock(m_display);
 
     bool result = false;
 
@@ -284,16 +292,29 @@ bool GlxContext::makeCurrent(bool current)
 ////////////////////////////////////////////////////////////
 void GlxContext::display()
 {
+    ScopedXDisplayLock displayLock(m_display);
 #if defined(GLX_DEBUGGING)
     GlxErrorHandler handler(m_display);
 #endif
 
-    ScopedXDisplayLock displayLock(m_display);
-
     if (m_pbuffer)
+    {
         glXSwapBuffers(m_display, m_pbuffer);
+    }
     else if (m_window)
+    {
+        // A minimized or not-yet-mapped drawable makes the driver abort the swap.
+        XWindowAttributes attributes;
+        if (XGetWindowAttributes(m_display, m_window, &attributes) == 0
+            || attributes.width <= 0
+            || attributes.height <= 0
+            || attributes.map_state != IsViewable)
+        {
+            return;
+        }
+
         glXSwapBuffers(m_display, m_window);
+    }
 
 #if defined(GLX_DEBUGGING)
     if (glxErrorOccurred)
@@ -579,10 +600,84 @@ void GlxContext::createSurface(GlxContext* shared, unsigned int width, unsigned 
 ////////////////////////////////////////////////////////////
 void GlxContext::createSurface(::Window window)
 {
-    // A window already exists, so just use it
-    m_window = window;
+    // The window manager resizes this top-level window while glXSwapBuffers is
+    // blocked on vsync. On this NVIDIA driver that re-enters DestroyDrawable and
+    // abort()s. Resizing the GLX drawable ourselves does it too: the next
+    // glDeleteFramebuffers or glXSwapBuffers abort()s. The drawable is a child
+    // the size of the screen, created once and never resized. The parent clips
+    // it, and the visible pixels are the child's top-left. The child selects
+    // no events, so keys and buttons propagate to the host.
+    m_hostWindow = window;
+
+    XWindowAttributes attributes;
+    if (XGetWindowAttributes(m_display, window, &attributes) == 0 || !attributes.visual)
+    {
+        err() << "Failed to get the window attributes, GLX drawable is the host window" << std::endl;
+        m_window = window;
+        m_hostWindow = 0;
+        updateSettingsFromWindow();
+        return;
+    }
+
+    // Screen-sized, not window-sized. A later XResizeWindow of this drawable
+    // makes glXSwapBuffers abort while the parent is being configured.
+    int screen = DefaultScreen(m_display);
+    unsigned int width = attributes.width > 0 ? static_cast<unsigned int>(attributes.width) : 1;
+    unsigned int height = attributes.height > 0 ? static_cast<unsigned int>(attributes.height) : 1;
+    unsigned int screenWidth = static_cast<unsigned int>(DisplayWidth(m_display, screen));
+    unsigned int screenHeight = static_cast<unsigned int>(DisplayHeight(m_display, screen));
+    if (screenWidth > width)
+        width = screenWidth;
+    if (screenHeight > height)
+        height = screenHeight;
+
+    XSetWindowAttributes childAttributes;
+    childAttributes.colormap = attributes.colormap;
+    childAttributes.background_pixmap = None;
+    childAttributes.border_pixel = 0;
+
+    m_window = XCreateWindow(m_display,
+                             window,
+                             0, 0,
+                             width, height,
+                             0,
+                             attributes.depth,
+                             InputOutput,
+                             attributes.visual,
+                             CWColormap | CWBackPixmap | CWBorderPixel,
+                             &childAttributes);
+
+    if (!m_window)
+    {
+        err() << "Failed to create GLX child window, using the host window" << std::endl;
+        m_window = window;
+        m_hostWindow = 0;
+        updateSettingsFromWindow();
+        return;
+    }
+
+    m_ownsWindow = true;
+    m_syncedWidth = width;
+    m_syncedHeight = height;
+    XMapWindow(m_display, m_window);
+    XSync(m_display, False);
 
     updateSettingsFromWindow();
+}
+
+
+////////////////////////////////////////////////////////////
+void GlxContext::syncDrawableSize(unsigned int, unsigned int)
+{
+    // Intentionally empty. See createSurface().
+}
+
+
+////////////////////////////////////////////////////////////
+void GlxContext::getDrawableSize(unsigned int& width, unsigned int& height) const
+{
+    width = m_syncedWidth;
+    height = m_syncedHeight;
 }
 
 

@@ -277,6 +277,26 @@ public:
     Vector2u getSize() const;
 
     ////////////////////////////////////////////////////////////
+    /// \brief Resize the platform drawable to the cached window size
+    ///
+    /// getSize() only reads the size. On GLX the drawable is a child of the
+    /// window the window manager resizes, and this applies that size on the
+    /// thread that owns the context. Call it before the frame draws.
+    ///
+    ////////////////////////////////////////////////////////////
+    void syncDrawableSize();
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Size of the GL drawable
+    ///
+    /// On GLX this is the screen-sized child, which is larger than the window
+    /// while the window is smaller than the screen. Other platforms return
+    /// the window size.
+    ///
+    ////////////////////////////////////////////////////////////
+    Vector2u getDrawableSize() const;
+
+    ////////////////////////////////////////////////////////////
     /// \brief Change the size of the rendering region of the window
     ///
     /// \param size New size, in pixels

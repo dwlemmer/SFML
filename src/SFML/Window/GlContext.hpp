@@ -184,6 +184,28 @@ public:
     virtual void display() = 0;
 
     ////////////////////////////////////////////////////////////
+    /// \brief Resize the drawable to the window size, if this platform needs it
+    ///
+    /// Called from Window::syncDrawableSize() on the thread that owns the
+    /// context, before that frame draws. The default does nothing. getSize()
+    /// must not call this: it runs mid-frame and immediately before a swap.
+    ///
+    /// \param width  Width in pixels
+    /// \param height Height in pixels
+    ///
+    ////////////////////////////////////////////////////////////
+    virtual void syncDrawableSize(unsigned int width, unsigned int height);
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Size of the GL drawable
+    ///
+    /// Zero means "same as the window". The GLX child is screen-sized and is
+    /// not resized when the window is.
+    ///
+    ////////////////////////////////////////////////////////////
+    virtual void getDrawableSize(unsigned int& width, unsigned int& height) const;
+
+    ////////////////////////////////////////////////////////////
     /// \brief Enable or disable vertical synchronization
     ///
     /// Activating vertical synchronization will limit the number

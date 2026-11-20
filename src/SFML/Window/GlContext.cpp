@@ -472,6 +472,20 @@ const ContextSettings& GlContext::getSettings() const
 
 
 ////////////////////////////////////////////////////////////
+void GlContext::syncDrawableSize(unsigned int, unsigned int)
+{
+}
+
+
+////////////////////////////////////////////////////////////
+void GlContext::getDrawableSize(unsigned int& width, unsigned int& height) const
+{
+    width = 0;
+    height = 0;
+}
+
+
+////////////////////////////////////////////////////////////
 bool GlContext::setActive(bool active)
 {
     if (active)

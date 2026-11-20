@@ -233,7 +233,34 @@ void Window::setPosition(const Vector2i& position)
 ////////////////////////////////////////////////////////////
 Vector2u Window::getSize() const
 {
+    // The main thread writes m_size from ConfigureNotify while the render thread
+    // reads it. Do not resize the drawable here. Callers query this mid-frame,
+    // including immediately before display(), and a resize there aborts the driver.
     return m_size;
+}
+
+
+////////////////////////////////////////////////////////////
+void Window::syncDrawableSize()
+{
+    if (!m_context)
+        return;
+
+    Vector2u size = m_size;
+    m_context->syncDrawableSize(size.x, size.y);
+}
+
+
+////////////////////////////////////////////////////////////
+Vector2u Window::getDrawableSize() const
+{
+    unsigned int width = 0;
+    unsigned int height = 0;
+    if (m_context)
+        m_context->getDrawableSize(width, height);
+    if (width == 0 || height == 0)
+        return m_size;
+    return Vector2u(width, height);
 }
 
 
